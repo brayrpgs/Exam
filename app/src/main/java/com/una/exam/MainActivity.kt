@@ -174,12 +174,7 @@ fun CourseItem(course: Course, onEdit: (Course) -> Unit, onDelete: (Course) -> U
 
             course.imageUrl?.let {
                 RemoteImage(
-                    IMAGES_BASE_URL + it,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(MaterialTheme.shapes.small),
-                    contentScale = ContentScale.Crop
+                    IMAGES_BASE_URL + it
                 )
             }
 
@@ -239,7 +234,7 @@ fun CourseItem(course: Course, onEdit: (Course) -> Unit, onDelete: (Course) -> U
 
 
 @Composable
-fun RemoteImage(imageUrl: String, modifier: Modifier, contentScale: ContentScale) {
+fun RemoteImage(imageUrl: String) {
     AsyncImage(
         model = imageUrl,
         contentDescription = null,
