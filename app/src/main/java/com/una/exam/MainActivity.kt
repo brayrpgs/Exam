@@ -60,6 +60,7 @@ import java.io.FileOutputStream
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -260,6 +261,15 @@ fun CourseItem(course: Course, onEdit: (Course) -> Unit, onDelete: (Course) -> U
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text("Delete")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                TextButton(
+                    onClick = { },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF008000))
+                ) {
+                    Text("Show Students")
                 }
             }
         }
