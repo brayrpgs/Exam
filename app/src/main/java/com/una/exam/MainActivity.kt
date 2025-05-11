@@ -6,11 +6,13 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,7 +48,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -57,46 +58,80 @@ import com.una.exam.viewmodel.CourseViewModel
 import java.io.File
 import java.io.FileOutputStream
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.una.exam.network.RetrofitInstance
+import com.una.exam.viewmodel.CourseRoomViewModel
+import com.una.exam.viewmodel.CourseRoomViewModelFactory
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
+    private val viewModelRoom: CourseRoomViewModel by viewModels{
+        CourseRoomViewModelFactory(application)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            RetrofitInstance.initCache(applicationContext)
             ExamTheme {
                 val courseViewModel: CourseViewModel = viewModel()
-                CourseScreen(courseViewModel)
+                CourseScreen(courseViewModel, viewModelRoom)
             }
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun CourseScreenPreview() {
-    ExamTheme {
-        val courseViewModel: CourseViewModel = viewModel()
-        CourseScreen(courseViewModel)
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CourseScreen(viewModel: CourseViewModel) {
+fun CourseScreen(viewModel: CourseViewModel, viewModelRoom: CourseRoomViewModel) {
 
+    val context = LocalContext.current
     val courses by viewModel.courses.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val dataOrigin by viewModelRoom.dataOrigin.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<Course?>(null) }
 
-    LaunchedEffect(Unit) {
-        Log.i("Fetching Data", "Coming...")
-        viewModel.fetchCourses()
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver {_, course ->
+            if (course == Lifecycle.Event.ON_RESUME) {
+                viewModel.fetchCourses()
+                coroutineScope.launch {
+                    viewModelRoom.fetchCourse()
+                }
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(dataOrigin) {
+        val message = when (dataOrigin) {
+            "LOADING" -> "Loading, please wait..."
+            "LOCAL" -> "You're offline, retrieving data from cache..."
+            "REMOTE" -> "You're online, fetching data from the internet..."
+            else -> "Something went wrong, please try again."
+        }
+
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Courses registered") }
+                title = {
+                    Text("Courses registered")
+                }
             )
         },
         floatingActionButton = {
