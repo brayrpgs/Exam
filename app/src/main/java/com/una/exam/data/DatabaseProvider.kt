@@ -1,11 +1,9 @@
 package com.una.exam.data
 
 import android.content.Context
-import android.preference.DialogPreference
 import android.util.Log
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.concurrent.Executors
 

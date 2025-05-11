@@ -4,9 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.sqlite.db.SimpleSQLiteQuery
 import com.una.exam.data.CourseRepository
-import com.una.exam.data.DatabaseProvider
 import com.una.exam.models.Course
 import com.una.exam.network.RetrofitInstance
 import com.una.exam.utils.NetworkUtils
