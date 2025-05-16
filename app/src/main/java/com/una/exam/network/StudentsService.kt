@@ -1,6 +1,7 @@
 package com.una.exam.network
 
 import com.una.exam.models.Student
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -13,7 +14,7 @@ interface StudentsService {
     suspend fun insertStudent(@Body student: Student): Student
 
     @GET("api/courses/{id}/students")
-    suspend fun getStudentsByCourse(@Path("id") id: Int): List<Student>
+    suspend fun getStudentsByCourse(@Path("id") id: Int): Response<List<Student>>
 
     @PUT("api/student")
     suspend fun updateStudent(@Body student: Student): Student

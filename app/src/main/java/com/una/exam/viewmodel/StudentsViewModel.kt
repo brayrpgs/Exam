@@ -23,12 +23,30 @@ class StudentsViewModel(private val repository: StudentRepository) : ViewModel()
             isLoading = true
             dataOrigin = "LOADING"
             try {
-                val remoteStudents = RetrofitInstance.apiStudents.getStudentsByCourse(courseId)
-                students = remoteStudents
-                repository.deleteStudentsByCourse(courseId)
-                repository.addStudents(remoteStudents)
-                dataOrigin = "REMOTE"
+                val response = RetrofitInstance.apiStudents.getStudentsByCourse(courseId)
+
+                if (response.isSuccessful && response.body() != null) {
+                    val remoteStudents = response.body()!!
+                    students = remoteStudents
+                    repository.deleteStudentsByCourse(courseId)
+                    repository.addStudents(remoteStudents)
+
+                    val rawResponse = response.raw()
+                    dataOrigin = when {
+                        rawResponse.networkResponse != null -> "REMOTE"
+                        rawResponse.cacheResponse != null -> "LOCAL"
+                        else -> "UNKNOWN"
+                    }
+                } else {
+                    Log.e(
+                        "StudentsViewModel",
+                        "API error: ${response.code()} - ${response.message()}"
+                    )
+                    students = repository.getStudentsByCourseId(courseId)
+                    dataOrigin = "LOCAL"
+                }
             } catch (e: Exception) {
+                Log.e("StudentsViewModel", "Network error: ${e.message}")
                 students = repository.getStudentsByCourseId(courseId)
                 dataOrigin = "LOCAL"
             } finally {
@@ -36,6 +54,7 @@ class StudentsViewModel(private val repository: StudentRepository) : ViewModel()
             }
         }
     }
+
 
     fun insertStudent(student: Student) {
         viewModelScope.launch {
