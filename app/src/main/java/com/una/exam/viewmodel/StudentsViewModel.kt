@@ -6,23 +6,26 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.una.exam.data.StudentRepository
 import com.una.exam.models.Student
 import com.una.exam.network.RetrofitInstance
 import kotlinx.coroutines.launch
 
-class StudentsViewModel : ViewModel() {
+class StudentsViewModel(private val repository: StudentRepository) : ViewModel() {
     var students by mutableStateOf<List<Student>>(emptyList())
     var isLoading by mutableStateOf(true)
         private set
 
-    fun fetchStudents(id: Int) {
+    fun fetchStudents(courseId: Int) {
         viewModelScope.launch {
             isLoading = true
             try {
-                students = RetrofitInstance.apiStudents.getStudentsByCourse(id)
-                Log.i("StudentsViewModel", "Fetched students: $students")
+                val remoteStudents = RetrofitInstance.apiStudents.getStudentsByCourse(courseId)
+                students = remoteStudents
+                repository.deleteStudentsByCourse(courseId)
+                repository.addStudents(remoteStudents)
             } catch (e: Exception) {
-                Log.e("StudentsViewModel", "Error: $e")
+                students = repository.getStudentsByCourseId(courseId)
             } finally {
                 isLoading = false
             }
@@ -33,7 +36,8 @@ class StudentsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 RetrofitInstance.apiStudents.insertStudent(student)
-                fetchStudents(student.courseId!!) // sincroniza después
+                repository.addStudents(listOf(student))
+                fetchStudents(student.courseId!!)
             } catch (e: Exception) {
                 Log.e("StudentsViewModel", "Insert error: $e")
             }
@@ -44,7 +48,8 @@ class StudentsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 RetrofitInstance.apiStudents.updateStudent(student)
-                fetchStudents(student.courseId!!) // sincroniza después
+                repository.updateStudent(student)
+                fetchStudents(student.courseId!!)
             } catch (e: Exception) {
                 Log.e("StudentsViewModel", "Update error: $e")
             }
@@ -55,7 +60,8 @@ class StudentsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 RetrofitInstance.apiStudents.deleteStudent(id)
-                fetchStudents(courseId) // sincroniza después
+                repository.deleteStudentById(id)
+                fetchStudents(courseId)
             } catch (e: Exception) {
                 Log.e("StudentsViewModel", "Delete error: $e")
             }

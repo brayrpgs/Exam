@@ -24,7 +24,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -40,14 +39,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.una.exam.data.DatabaseProvider
+import com.una.exam.data.StudentRepository
 import com.una.exam.models.Student
 import com.una.exam.viewmodel.StudentsViewModel
+import com.una.exam.viewmodel.StudentsViewModelFactory
 import kotlinx.coroutines.launch
 
 class StudentsActivity : ComponentActivity() {
@@ -63,7 +66,11 @@ class StudentsActivity : ComponentActivity() {
 @Composable
 fun Background(courseId: Int) {
     // Initialize the ViewModel
-    val studentsViewModel: StudentsViewModel = viewModel()
+    val context = LocalContext.current
+    val db = DatabaseProvider.getDatabase(context)
+    val repository = StudentRepository(context)
+    val factory = StudentsViewModelFactory(repository)
+    val studentsViewModel: StudentsViewModel = viewModel(factory = factory)
     val students = studentsViewModel.students.sortedBy { student -> student.name }
     val isLoading = studentsViewModel.isLoading
     var showDialog by remember { mutableStateOf(false) }
