@@ -54,6 +54,16 @@ object RetrofitInstance {
             .build()
     }
 
+    val apiStudents: StudentsService by lazy {
+        Retrofit.Builder()
+            .baseUrl(API_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(StudentsService::class.java)
+
+    }
+
     val api: APIService by lazy {
         Retrofit.Builder()
             .baseUrl(API_URL)

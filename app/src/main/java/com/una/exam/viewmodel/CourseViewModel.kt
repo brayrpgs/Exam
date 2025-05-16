@@ -1,6 +1,7 @@
 package com.una.exam.viewmodel
 
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.una.exam.models.Course
@@ -13,11 +14,14 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
+import androidx.compose.runtime.State
 
 class CourseViewModel: ViewModel() {
 
     private val _courses = MutableStateFlow<List<Course>>(emptyList())
     val courses: StateFlow<List<Course>> get() = _courses
+    private val _errorMessage = mutableStateOf<String?>(null)
+    val errorMessage: State<String?> = _errorMessage
 
     fun fetchCourses() {
         viewModelScope.launch {
@@ -97,13 +101,28 @@ class CourseViewModel: ViewModel() {
         courseId?.let { id ->
             viewModelScope.launch {
                 try {
+
                     RetrofitInstance.api.deleteCourse(id)
                     _courses.value = _courses.value.filter { it.id != courseId }
+
+                } catch (e: HttpException) {
+                    _errorMessage.value = "The course could not be deleted because it already has students registered."
+
                 } catch (e: Exception) {
+                    _errorMessage.value = "Unexpected error while deleting the course."
                     Log.e("CourseViewModelError", "Error deleting course: ${e.message}")
                 }
             }
-        } ?: Log.e("CourseViewModelError", "Error: eventId is null")
+        } ?: run {
+            _errorMessage.value = "ID null"
+            Log.e("CourseViewModelError", "Error: courseId is null")
+        }
     }
+
+
+    fun clearErrorMessage() {
+        _errorMessage.value = null
+    }
+
 
 }
