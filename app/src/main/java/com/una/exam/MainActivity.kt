@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -63,6 +64,7 @@ import java.io.FileOutputStream
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -234,6 +236,7 @@ fun CourseList(
 
 @Composable
 fun CourseItem(course: Course, onEdit: (Course) -> Unit, onDelete: (Course) -> Unit) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -301,6 +304,19 @@ fun CourseItem(course: Course, onEdit: (Course) -> Unit, onDelete: (Course) -> U
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text("Delete")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                TextButton(
+                    onClick = {
+                        val intent = Intent(context, StudentsActivity::class.java)
+                        intent.putExtra("id", course.id)
+                        context.startActivity(intent)
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF008000))
+                ) {
+                    Text("Show Students")
                 }
             }
         }
