@@ -1,8 +1,11 @@
 package com.una.exam
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
@@ -63,6 +66,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.google.firebase.messaging.FirebaseMessaging
 import com.una.exam.network.RetrofitInstance
 import com.una.exam.viewmodel.CourseRoomViewModel
 import com.una.exam.viewmodel.CourseRoomViewModelFactory
@@ -70,12 +74,13 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModelRoom: CourseRoomViewModel by viewModels{
+    private val viewModelRoom: CourseRoomViewModel by viewModels {
         CourseRoomViewModelFactory(application)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        subscribeToTopic()
         enableEdgeToEdge()
         setContent {
             RetrofitInstance.initCache(applicationContext)
@@ -98,9 +103,17 @@ fun CourseScreen(viewModel: CourseViewModel, viewModelRoom: CourseRoomViewModel)
     val dataOrigin by viewModelRoom.dataOrigin.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<Course?>(null) }
+    val errorMessage by viewModel.errorMessage
+    var showErrorDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            showErrorDialog = true
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver {_, course ->
+        val observer = LifecycleEventObserver { _, course ->
             if (course == Lifecycle.Event.ON_RESUME) {
                 viewModel.fetchCourses()
                 coroutineScope.launch {
@@ -167,6 +180,9 @@ fun CourseScreen(viewModel: CourseViewModel, viewModelRoom: CourseRoomViewModel)
         }
     }
 
+
+
+
     if (showDialog) {
         CourseDialog(
             course = selectedCourse,
@@ -180,10 +196,35 @@ fun CourseScreen(viewModel: CourseViewModel, viewModelRoom: CourseRoomViewModel)
         )
     }
 
+    if (showErrorDialog && errorMessage != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showErrorDialog = false
+                viewModel.clearErrorMessage()
+            },
+            title = { Text("Unable to delete course") },
+            text = { Text(errorMessage ?: "") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showErrorDialog = false
+                    viewModel.clearErrorMessage()
+                }) {
+                    Text("Aceptar")
+                }
+            }
+        )
+    }
+
+
 }
 
 @Composable
-fun CourseList(courses: List<Course>, modifier: Modifier = Modifier, onEdit: (Course) -> Unit, onDelete: (Course) -> Unit) {
+fun CourseList(
+    courses: List<Course>,
+    modifier: Modifier = Modifier,
+    onEdit: (Course) -> Unit,
+    onDelete: (Course) -> Unit
+) {
     LazyColumn(modifier = modifier.padding(16.dp)) {
         items(courses) { course ->
             CourseItem(course, onEdit, onDelete)
@@ -231,12 +272,12 @@ fun CourseItem(course: Course, onEdit: (Course) -> Unit, onDelete: (Course) -> U
 
             Text(
                 text = "Schedule: ${course.schedule}",
-                style = MaterialTheme.typography.bodyMedium ,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
             Text(
                 text = "Professor: ${course.professor}",
-                style = MaterialTheme.typography.bodyMedium ,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
@@ -281,7 +322,7 @@ fun RemoteImage(imageUrl: String) {
 
 fun getFileFromUri(context: Context, uri: Uri): File? {
     val contentResolver = context.contentResolver
-    val fileName = getFileName(contentResolver, uri)?: return null
+    val fileName = getFileName(contentResolver, uri) ?: return null
 
     val tempFile = File(context.cacheDir, fileName)
     try {
@@ -337,13 +378,25 @@ fun CourseDialog(course: Course?, onDismiss: () -> Unit, onSave: (Course) -> Uni
         title = { Text(if (course == null) "Add new course" else "Edit course") },
         text = {
             Column {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
-                OutlinedTextField(value = schedule, onValueChange = { schedule = it }, label = { Text("Schedule") })
-                OutlinedTextField(value = professor, onValueChange = { professor = it }, label = { Text("Professor") })
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") })
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") })
+                OutlinedTextField(
+                    value = schedule,
+                    onValueChange = { schedule = it },
+                    label = { Text("Schedule") })
+                OutlinedTextField(
+                    value = professor,
+                    onValueChange = { professor = it },
+                    label = { Text("Professor") })
 
                 Button(
-                    onClick = {imagePickerLauncher.launch("image/*")},
+                    onClick = { imagePickerLauncher.launch("image/*") },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Select course image")
@@ -361,12 +414,24 @@ fun CourseDialog(course: Course?, onDismiss: () -> Unit, onSave: (Course) -> Uni
                     )
                 }
             }
-        }
-        ,
+        },
         confirmButton = {
-            Button(onClick = {
-                onSave(Course(course?.id, name, description, selectedImageFile?.name, schedule, professor, selectedImageFile))
-            }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+            Button(
+                onClick = {
+                    onSave(
+                        Course(
+                            course?.id,
+                            name,
+                            description,
+                            selectedImageFile?.name,
+                            schedule,
+                            professor,
+                            selectedImageFile
+                        )
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
                 Text("Save")
             }
         },
@@ -376,4 +441,31 @@ fun CourseDialog(course: Course?, onDismiss: () -> Unit, onSave: (Course) -> Uni
             }
         }
     )
+}
+
+fun createNotificationChannel(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channelId = "exam_reminder_channel"
+        val channelName = "Exam Reminders"
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+
+        val channel = NotificationChannel(channelId, channelName, importance).apply {
+            description = "Notifies users about exam notification"
+        }
+
+        val notificationManager =
+            context.getSystemService(NotificationManager::class.java)
+        notificationManager?.createNotificationChannel(channel)
+    }
+}
+
+fun subscribeToTopic() {
+    FirebaseMessaging.getInstance().subscribeToTopic("exam_notifications")
+        .addOnCompleteListener { task ->
+            var msg = "Subscription successful"
+            if (!task.isSuccessful) {
+                msg = "Subscription failed"
+            }
+            Log.d("FCM", msg)
+        }
 }
