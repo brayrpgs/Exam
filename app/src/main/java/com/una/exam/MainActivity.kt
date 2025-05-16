@@ -1,9 +1,12 @@
 package com.una.exam
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
@@ -65,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.google.firebase.messaging.FirebaseMessaging
 import com.una.exam.network.RetrofitInstance
 import com.una.exam.viewmodel.CourseRoomViewModel
 import com.una.exam.viewmodel.CourseRoomViewModelFactory
@@ -78,6 +82,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        subscribeToTopic()
         enableEdgeToEdge()
         setContent {
             RetrofitInstance.initCache(applicationContext)
@@ -100,6 +105,14 @@ fun CourseScreen(viewModel: CourseViewModel, viewModelRoom: CourseRoomViewModel)
     val dataOrigin by viewModelRoom.dataOrigin.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var selectedCourse by remember { mutableStateOf<Course?>(null) }
+    val errorMessage by viewModel.errorMessage
+    var showErrorDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            showErrorDialog = true
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, course ->
@@ -169,6 +182,9 @@ fun CourseScreen(viewModel: CourseViewModel, viewModelRoom: CourseRoomViewModel)
         }
     }
 
+
+
+
     if (showDialog) {
         CourseDialog(
             course = selectedCourse,
@@ -181,6 +197,26 @@ fun CourseScreen(viewModel: CourseViewModel, viewModelRoom: CourseRoomViewModel)
             }
         )
     }
+
+    if (showErrorDialog && errorMessage != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showErrorDialog = false
+                viewModel.clearErrorMessage()
+            },
+            title = { Text("Unable to delete course") },
+            text = { Text(errorMessage ?: "") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showErrorDialog = false
+                    viewModel.clearErrorMessage()
+                }) {
+                    Text("Aceptar")
+                }
+            }
+        )
+    }
+
 
 }
 
@@ -421,4 +457,31 @@ fun CourseDialog(course: Course?, onDismiss: () -> Unit, onSave: (Course) -> Uni
             }
         }
     )
+}
+
+fun createNotificationChannel(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channelId = "exam_reminder_channel"
+        val channelName = "Exam Reminders"
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+
+        val channel = NotificationChannel(channelId, channelName, importance).apply {
+            description = "Notifies users about exam notification"
+        }
+
+        val notificationManager =
+            context.getSystemService(NotificationManager::class.java)
+        notificationManager?.createNotificationChannel(channel)
+    }
+}
+
+fun subscribeToTopic() {
+    FirebaseMessaging.getInstance().subscribeToTopic("exam_notifications")
+        .addOnCompleteListener { task ->
+            var msg = "Subscription successful"
+            if (!task.isSuccessful) {
+                msg = "Subscription failed"
+            }
+            Log.d("FCM", msg)
+        }
 }

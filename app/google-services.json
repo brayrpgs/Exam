@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "113505093244",
+    "project_id": "exam-fallas-rosales",
+    "storage_bucket": "exam-fallas-rosales.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:113505093244:android:81beaa84cd875087cfabf9",
+        "android_client_info": {
+          "package_name": "com.una.exam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4BeA0siaSOXCioCI-C7G7imlbmHKsLBw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
