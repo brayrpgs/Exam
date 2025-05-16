@@ -29,6 +29,9 @@
         <activity
             android:name=".StudentsActivity"
             android:exported="true" />
+        <activity
+            android:name=".StudentDetailActivity"
+            android:exported="true" />
 
         <service
             android:name=".services.MessagingService"
