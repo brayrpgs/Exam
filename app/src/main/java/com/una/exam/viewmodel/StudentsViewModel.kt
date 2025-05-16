@@ -15,17 +15,22 @@ class StudentsViewModel(private val repository: StudentRepository) : ViewModel()
     var students by mutableStateOf<List<Student>>(emptyList())
     var isLoading by mutableStateOf(true)
         private set
+    var dataOrigin by mutableStateOf("LOADING")
+        private set
 
     fun fetchStudents(courseId: Int) {
         viewModelScope.launch {
             isLoading = true
+            dataOrigin = "LOADING"
             try {
                 val remoteStudents = RetrofitInstance.apiStudents.getStudentsByCourse(courseId)
                 students = remoteStudents
                 repository.deleteStudentsByCourse(courseId)
                 repository.addStudents(remoteStudents)
+                dataOrigin = "REMOTE"
             } catch (e: Exception) {
                 students = repository.getStudentsByCourseId(courseId)
+                dataOrigin = "LOCAL"
             } finally {
                 isLoading = false
             }

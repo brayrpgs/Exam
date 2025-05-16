@@ -1,6 +1,7 @@
 package com.una.exam
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -76,11 +77,29 @@ fun Background(courseId: Int) {
     var showDialog by remember { mutableStateOf(false) }
     var studentCreate by remember { mutableStateOf<Student?>(null) }
 
+    val dataOrigin = studentsViewModel.dataOrigin
+
+    LaunchedEffect(dataOrigin) {
+        val message = when (dataOrigin) {
+            "LOADING" -> "Loading students, please wait..."
+            "LOCAL" -> "You're offline, showing cached students"
+            "REMOTE" -> "You're online, showing updated students"
+            "ERROR" -> "Unable to load students. Please try again."
+            else -> ""
+        }
+        if (message.isNotEmpty()) {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
 
     // Fetch students when the course ID changes
     LaunchedEffect(courseId) {
         studentsViewModel.fetchStudents(courseId)
     }
+
+
 
     Scaffold(
         floatingActionButton = {
