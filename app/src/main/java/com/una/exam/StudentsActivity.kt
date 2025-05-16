@@ -182,38 +182,43 @@ fun CardStudent(student: Student, showDialog: () -> Unit = {}, course: Course) {
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Name : ${student.name}", color = Color(0xFF000000),
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Left
-            )
-            Text(
-                text = "Email : ${student.email}",
-                color = Color(0xFF000000),
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Left
-            )
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Name: ${student.name}",
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Email: ${student.email}",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             TextButton(
                 onClick = {
-                    val intent = Intent(context, StudentDetailActivity::class.java)
-                    intent.putExtra("id", course.id)
-                    intent.putExtra("name", course.name)
-                    intent.putExtra("description", course.description)
-                    intent.putExtra("schedule", course.schedule)
-                    intent.putExtra("professor", course.professor)
-                    intent.putExtra("imageUrl", course.imageUrl)
-                    intent.putExtra("studentName", student.name)
-                    intent.putExtra("studentEmail", student.email)
-                    intent.putExtra("studentPhone", student.phone)
-                    intent.putExtra("studentId", student.id)
-                    intent.putExtra("courseId", student.courseId)
+                    val intent = Intent(context, StudentDetailActivity::class.java).apply {
+                        putExtra("id", course.id)
+                        putExtra("name", course.name)
+                        putExtra("description", course.description)
+                        putExtra("schedule", course.schedule)
+                        putExtra("professor", course.professor)
+                        putExtra("imageUrl", course.imageUrl)
+                        putExtra("studentName", student.name)
+                        putExtra("studentEmail", student.email)
+                        putExtra("studentPhone", student.phone)
+                        putExtra("studentId", student.id)
+                        putExtra("courseId", student.courseId)
+                    }
                     context.startActivity(intent)
-
                 }
             ) {
                 Text("Details", color = Color(0xFF2979FF))
