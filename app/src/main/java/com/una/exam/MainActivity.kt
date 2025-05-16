@@ -312,6 +312,12 @@ fun CourseItem(course: Course, onEdit: (Course) -> Unit, onDelete: (Course) -> U
                     onClick = {
                         val intent = Intent(context, StudentsActivity::class.java)
                         intent.putExtra("id", course.id)
+                        intent.putExtra("name", course.name)
+                        intent.putExtra("description", course.description)
+                        intent.putExtra("schedule", course.schedule)
+                        intent.putExtra("professor", course.professor)
+                        intent.putExtra("imageUrl", course.imageUrl)
+
                         context.startActivity(intent)
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF008000))

@@ -1,6 +1,8 @@
 package com.una.exam
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -24,7 +26,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -40,40 +41,81 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.una.exam.data.DatabaseProvider
+import com.una.exam.data.StudentRepository
+import com.una.exam.models.Course
 import com.una.exam.models.Student
 import com.una.exam.viewmodel.StudentsViewModel
+import com.una.exam.viewmodel.StudentsViewModelFactory
 import kotlinx.coroutines.launch
 
 class StudentsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         var courseId = intent.getIntExtra("id", -1)
+        var courseName = intent.getStringExtra("name")
+        var courseDescription = intent.getStringExtra("description")
+        var courseSchedule = intent.getStringExtra("schedule")
+        var courseProfessor = intent.getStringExtra("professor")
+        var courseImageUrl = intent.getStringExtra("imageUrl")
+
+        val course = Course(
+            id = courseId,
+            name = courseName ?: "",
+            description = courseDescription ?: "",
+            imageUrl = courseImageUrl,
+            schedule = courseSchedule ?: "",
+            professor = courseProfessor ?: ""
+        )
+
         setContent {
-            Background(courseId)
+            Background(course)
         }
     }
 }
 
 @Composable
-fun Background(courseId: Int) {
+fun Background(course: Course) {
     // Initialize the ViewModel
-    val studentsViewModel: StudentsViewModel = viewModel()
+    val context = LocalContext.current
+    val db = DatabaseProvider.getDatabase(context)
+    val repository = StudentRepository(context)
+    val factory = StudentsViewModelFactory(repository)
+    val studentsViewModel: StudentsViewModel = viewModel(factory = factory)
     val students = studentsViewModel.students.sortedBy { student -> student.name }
     val isLoading = studentsViewModel.isLoading
     var showDialog by remember { mutableStateOf(false) }
     var studentCreate by remember { mutableStateOf<Student?>(null) }
 
+    val dataOrigin = studentsViewModel.dataOrigin
+
+    LaunchedEffect(dataOrigin) {
+        val message = when (dataOrigin) {
+            "LOADING" -> "Loading students, please wait..."
+            "LOCAL" -> "You're offline, showing cached students"
+            "REMOTE" -> "You're online, showing updated students"
+            "ERROR" -> "Unable to load students. Please try again."
+            else -> ""
+        }
+        if (message.isNotEmpty()) {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     // Fetch students when the course ID changes
-    LaunchedEffect(courseId) {
-        studentsViewModel.fetchStudents(courseId)
+    LaunchedEffect(course) {
+        studentsViewModel.fetchStudents(course.id!!)
     }
+
+
 
     Scaffold(
         floatingActionButton = {
@@ -94,17 +136,20 @@ fun Background(courseId: Int) {
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            UpdateFetchComponent(courseId)
+            UpdateFetchComponent(course.id!!)
             Spacer(Modifier.height(20.dp))
             if (isLoading) {
                 CircularProgressIndicator()
             } else {
                 LazyColumn {
                     items(students) { student ->
-                        CardStudent(student = student, showDialog = {
-                            showDialog = true
-                            studentCreate = student
-                        })
+                        CardStudent(
+                            student = student, showDialog = {
+                                showDialog = true
+                                studentCreate = student
+                            },
+                            course = course
+                        )
                     }
                 }
             }
@@ -114,7 +159,7 @@ fun Background(courseId: Int) {
             DialogStudent(
                 student = studentCreate,
                 onDismiss = { showDialog = false },
-                courseId = courseId,
+                courseId = course.id!!,
                 studentsViewModel = studentsViewModel
             )
         }
@@ -123,8 +168,8 @@ fun Background(courseId: Int) {
 
 
 @Composable
-fun CardStudent(student: Student, showDialog: () -> Unit = {}) {
-
+fun CardStudent(student: Student, showDialog: () -> Unit = {}, course: Course) {
+    var context = LocalContext.current
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = Modifier
@@ -153,6 +198,26 @@ fun CardStudent(student: Student, showDialog: () -> Unit = {}) {
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Left
             )
+            TextButton(
+                onClick = {
+                    val intent = Intent(context, StudentDetailActivity::class.java)
+                    intent.putExtra("id", course.id)
+                    intent.putExtra("name", course.name)
+                    intent.putExtra("description", course.description)
+                    intent.putExtra("schedule", course.schedule)
+                    intent.putExtra("professor", course.professor)
+                    intent.putExtra("imageUrl", course.imageUrl)
+                    intent.putExtra("studentName", student.name)
+                    intent.putExtra("studentEmail", student.email)
+                    intent.putExtra("studentPhone", student.phone)
+                    intent.putExtra("studentId", student.id)
+                    intent.putExtra("courseId", student.courseId)
+                    context.startActivity(intent)
+
+                }
+            ) {
+                Text("Details", color = Color(0xFF2979FF))
+            }
         }
     }
 }
@@ -292,13 +357,6 @@ fun DialogStudent(
             }
         }
     }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun BackgroundPreview() {
-    Background(1006)
 }
 
 

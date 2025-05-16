@@ -23,4 +23,5 @@ interface CourseDao {
 
     @Delete
     suspend fun deleteCourse(course: Course)
+
 }
