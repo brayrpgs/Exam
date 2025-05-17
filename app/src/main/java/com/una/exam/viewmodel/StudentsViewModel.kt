@@ -61,6 +61,7 @@ class StudentsViewModel(private val repository: StudentRepository) : ViewModel()
             try {
                 RetrofitInstance.apiStudents.insertStudent(student)
                 repository.addStudents(listOf(student))
+                Log.i("Test", "$student.courseId")
                 fetchStudents(student.courseId!!)
             } catch (e: Exception) {
                 Log.e("StudentsViewModel", "Insert error: $e")

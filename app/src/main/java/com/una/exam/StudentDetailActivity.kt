@@ -1,17 +1,21 @@
 package com.una.exam
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.una.exam.utils.NetworkUtils
 
 class StudentDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,6 +30,7 @@ class StudentDetailActivity : ComponentActivity() {
         val studentName = intent.getStringExtra("studentName") ?: ""
         val studentEmail = intent.getStringExtra("studentEmail") ?: ""
         val studentPhone = intent.getStringExtra("studentPhone") ?: ""
+        val isConnected = NetworkUtils.isNetworkAvailable(this)
 
         setContent {
             StudentDetailScreen(
@@ -35,7 +40,8 @@ class StudentDetailActivity : ComponentActivity() {
                 courseProfessor = courseProfessor,
                 studentName = studentName,
                 studentEmail = studentEmail,
-                studentPhone = studentPhone
+                studentPhone = studentPhone,
+                isConnected = isConnected
             )
         }
     }
@@ -49,8 +55,21 @@ fun StudentDetailScreen(
     courseProfessor: String,
     studentName: String,
     studentEmail: String,
-    studentPhone: String
+    studentPhone: String,
+    isConnected: Boolean
 ) {
+
+    val context = LocalContext.current
+
+    LaunchedEffect(isConnected) {
+        val message = if (isConnected) {
+            "You're online, showing updated student details"
+        } else {
+            "You're offline, showing student details in cache"
+        }
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxSize()
